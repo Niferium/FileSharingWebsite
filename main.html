@@ -385,48 +385,53 @@
         async function loadFiles() {
             spinner.style.display = 'block';
             const fileList = document.getElementById('fileList');
-            
+
             try {
                 console.log('Fetching files from:', `${API_URL}/files`);
                 const response = await fetch(`${API_URL}/files`);
-                
+
                 console.log('Response status:', response.status);
-                
+
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('API Error Response:', errorText);
                     throw new Error(`API returned ${response.status}: ${errorText}`);
                 }
-                
-                let data = await response.json();
-                console.log('Raw response data:', data);
-                
-                // API Gateway returns body as a string, so parse it again
-                if (typeof data.body === 'string') {
-                    data = JSON.parse(data.body);
-                    console.log('Parsed body data:', data);
-                }
-                
-                // Handle case where data might be nested
-                const files = data.files || [];
-                console.log('Files array:', files);
 
-                if (files && files.length > 0) {
+                let data = await response.json();
+                console.log('Raw response:', data);
+
+                // If coming from API Gateway
+                if (data.body) {
+                    data = typeof data.body === 'string'
+                        ? JSON.parse(data.body)
+                        : data.body;
+                }
+
+                console.log('Final parsed data:', data);
+
+                const files = data.files ?? [];
+
+                if (files.length > 0) {
                     fileList.innerHTML = files.map(file => {
                         const sizeMB = (file.size / 1024 / 1024).toFixed(2);
                         const sizeKB = (file.size / 1024).toFixed(2);
-                        const displaySize = file.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+                        const displaySize = file.size > 1024 * 1024 
+                            ? `${sizeMB} MB` 
+                            : `${sizeKB} KB`;
+
                         const date = new Date(file.lastModified).toLocaleString();
-                        
+
                         return `
                             <div class="file-item">
                                 <div class="file-info">
                                     <div class="file-name">📄 ${escapeHtml(file.name)}</div>
                                     <div class="file-meta">${displaySize} • ${date}</div>
-                                    <div class="file-meta" style="font-size: 10px; color: #999; margin-top: 3px;">Key: ${escapeHtml(file.key)}</div>
+                                    <div class="file-meta" style="font-size:10px;color:#999;">
+                                        Key: ${escapeHtml(file.key)}
+                                    </div>
                                 </div>
                                 <div class="file-actions">
-                                    <button onclick="downloadFile('${escapeHtml(file.key)}', '${escapeHtml(file.name)}')">
+                                    <button onclick="downloadFile('${file.key}','${file.name}')">
                                         ⬇️ Download
                                     </button>
                                 </div>
@@ -435,28 +440,29 @@
                     }).join('');
                 } else {
                     fileList.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: #666;">
-                            <div style="font-size: 48px; margin-bottom: 10px;">📭</div>
+                        <div style="text-align:center;padding:40px;color:#666;">
+                            <div style="font-size:48px;">📭</div>
                             <p>No files uploaded yet</p>
-                            <p style="font-size: 14px; margin-top: 10px;">Upload your first file to get started!</p>
                         </div>
                     `;
                 }
+
             } catch (error) {
                 console.error('Load files error:', error);
                 fileList.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #d32f2f;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+                    <div style="text-align:center;padding:40px;color:#d32f2f;">
+                        <div style="font-size:48px;">⚠️</div>
                         <p><strong>Failed to load files</strong></p>
-                        <p style="font-size: 14px; margin-top: 10px;">${escapeHtml(error.message)}</p>
-                        <p style="font-size: 12px; margin-top: 10px; color: #666;">Check browser console (F12) for details</p>
+                        <p>${escapeHtml(error.message)}</p>
                     </div>
                 `;
                 showMessage(`❌ Failed to load files: ${error.message}`, 'error');
+
             } finally {
                 spinner.style.display = 'none';
             }
         }
+
         
         function escapeHtml(text) {
             const div = document.createElement('div');
