@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Share Collab</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .file-item:hover {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .file-actions button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .file-actions button:hover {
+            background: #764ba2;
+        }
+
+        .message {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .selected-file {
+            background: #f0f2ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .limits {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 File Share Collab</h1>
+            <p>Share files easily with your team</p>
+        </div>
+
+        <div class="card">
+            <div class="limits">
+                <strong>📌 Upload Limits:</strong> Files up to 10MB | Photos up to 50MB
+            </div>
+
+            <div id="message" class="message"></div>
+
+            <div class="upload-area" id="dropZone">
+                <div class="upload-icon">☁️</div>
+                <h3>Drop files here or click to browse</h3>
+                <p style="color: #666; margin-top: 10px;">Supports: Photos, PDFs, Word, Excel, and more</p>
+                <input type="file" id="fileInput" accept="*/*">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+            </div>
+
+            <div class="selected-file" id="selectedFile"></div>
+
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="spinner" id="spinner"></div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">📂 Shared Files</h2>
+            <button class="btn" onclick="loadFiles()" style="margin-bottom: 15px;">
+                🔄 Refresh Files
+            </button>
+            <div class="file-list" id="fileList"></div>
+        </div>
+    </div>
+
+    <script>
+        // UPDATE THIS WITH YOUR API GATEWAY URL!
+        const API_URL = 'https://pt8uko96cg.execute-api.ap-southeast-1.amazonaws.com/prod';
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const selectedFileDiv = document.getElementById('selectedFile');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const messageDiv = document.getElementById('message');
+        const spinner = document.getElementById('spinner');
+
+        let selectedFile = null;
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedFile = file;
+            const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+            
+            selectedFileDiv.innerHTML = `
+                <strong>Selected:</strong> ${file.name}<br>
+                <strong>Size:</strong> ${sizeMB} MB<br>
+                <strong>Type:</strong> ${file.type || 'Unknown'}<br>
+                <button class="btn" onclick="uploadFile()">Upload Now</button>
+            `;
+            selectedFileDiv.style.display = 'block';
+        }
+
+        async function uploadFile() {
+            if (!selectedFile) {
+                showMessage('Please select a file first', 'error');
+                return;
+            }
+
+            const sizeMB = selectedFile.size / 1024 / 1024;
+            const isImage = selectedFile.type.startsWith('image/');
+
+            if (sizeMB > 10 && !isImage) {
+                showMessage('File too large! Maximum 10MB for files', 'error');
+                return;
+            }
+
+            if (isImage && sizeMB > 50) {
+                showMessage('Image too large! Maximum 50MB for photos', 'error');
+                return;
+            }
+
+            progressBar.style.display = 'block';
+            progressFill.style.width = '30%';
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64 = e.target.result.split(',')[1];
+                    
+                    progressFill.style.width = '60%';
+
+                    const response = await fetch(`${API_URL}/upload`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            file: base64,
+                            fileName: selectedFile.name,
+                            fileType: selectedFile.type || 'application/octet-stream'
+                        })
+                    });
+
+                    progressFill.style.width = '100%';
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage('✅ File uploaded successfully!', 'success');
+                        selectedFile = null;
+                        selectedFileDiv.style.display = 'none';
+                        fileInput.value = '';
+                        loadFiles();
+                    } else {
+                        showMessage(`❌ Upload failed: ${data.error}`, 'error');
+                    }
+
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+                        progressFill.style.width = '0%';
+                    }, 1000);
+                };
+
+                reader.readAsDataURL(selectedFile);
+
+            } catch (error) {
+                showMessage(`❌ Upload error: ${error.message}`, 'error');
+                progressBar.style.display = 'none';
+            }
+        }
+
+        async function loadFiles() {
+            spinner.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_URL}/files`);
+                const data = await response.json();
+
+                const fileList = document.getElementById('fileList');
+                
+                if (data.files && data.files.length > 0) {
+                    fileList.innerHTML = data.files.map(file => {
+                        const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                        const date = new Date(file.lastModified).toLocaleString();
+                        
+                        return `
+                            <div class="file-item">
+                                <div class="file-info">
+                                    <div class="file-name">📄 ${file.name}</div>
+                                    <div class="file-meta">${sizeMB} MB • ${date}</div>
+                                </div>
+                                <div class="file-actions">
+                                    <button onclick="downloadFile('${file.key}', '${file.name}')">
+                                        ⬇️ Download
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    fileList.innerHTML = '<p style="text-align: center; color: #666;">No files uploaded yet</p>';
+                }
+            } catch (error) {
+                showMessage(`❌ Failed to load files: ${error.message}`, 'error');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function downloadFile(fileKey, fileName) {
+            try {
+                const response = await fetch(`${API_URL}/download?key=${encodeURIComponent(fileKey)}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    window.open(data.downloadUrl, '_blank');
+                } else {
+                    showMessage(`❌ Download failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Download error: ${error.message}`, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load files on page load
+        loadFiles();
+    </script>
+</body>
+</html>
