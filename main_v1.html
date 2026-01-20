@@ -256,14 +256,7 @@
 
     <script>
         // UPDATE THIS WITH YOUR API GATEWAY URL!
-        // Make sure it ends with /prod !
         const API_URL = 'https://pt8uko96cg.execute-api.ap-southeast-1.amazonaws.com/prod';
-        
-        // Quick test on page load
-        console.log('API URL:', API_URL);
-        if (API_URL.includes('YOUR-API-ID')) {
-            alert('⚠️ Please update the API_URL in the HTML file with your actual API Gateway URL!');
-        }
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -384,39 +377,26 @@
 
         async function loadFiles() {
             spinner.style.display = 'block';
-            const fileList = document.getElementById('fileList');
             
             try {
-                console.log('Fetching files from:', `${API_URL}/files`);
                 const response = await fetch(`${API_URL}/files`);
-                
-                console.log('Response status:', response.status);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('API Error Response:', errorText);
-                    throw new Error(`API returned ${response.status}: ${errorText}`);
-                }
-                
                 const data = await response.json();
-                console.log('Files data:', data);
 
+                const fileList = document.getElementById('fileList');
+                
                 if (data.files && data.files.length > 0) {
                     fileList.innerHTML = data.files.map(file => {
                         const sizeMB = (file.size / 1024 / 1024).toFixed(2);
-                        const sizeKB = (file.size / 1024).toFixed(2);
-                        const displaySize = file.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
                         const date = new Date(file.lastModified).toLocaleString();
                         
                         return `
                             <div class="file-item">
                                 <div class="file-info">
-                                    <div class="file-name">📄 ${escapeHtml(file.name)}</div>
-                                    <div class="file-meta">${displaySize} • ${date}</div>
-                                    <div class="file-meta" style="font-size: 10px; color: #999; margin-top: 3px;">Key: ${escapeHtml(file.key)}</div>
+                                    <div class="file-name">📄 ${file.name}</div>
+                                    <div class="file-meta">${sizeMB} MB • ${date}</div>
                                 </div>
                                 <div class="file-actions">
-                                    <button onclick="downloadFile('${escapeHtml(file.key)}', '${escapeHtml(file.name)}')">
+                                    <button onclick="downloadFile('${file.key}', '${file.name}')">
                                         ⬇️ Download
                                     </button>
                                 </div>
@@ -424,74 +404,27 @@
                         `;
                     }).join('');
                 } else {
-                    fileList.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: #666;">
-                            <div style="font-size: 48px; margin-bottom: 10px;">📭</div>
-                            <p>No files uploaded yet</p>
-                            <p style="font-size: 14px; margin-top: 10px;">Upload your first file to get started!</p>
-                        </div>
-                    `;
+                    fileList.innerHTML = '<p style="text-align: center; color: #666;">No files uploaded yet</p>';
                 }
             } catch (error) {
-                console.error('Load files error:', error);
-                fileList.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #d32f2f;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
-                        <p><strong>Failed to load files</strong></p>
-                        <p style="font-size: 14px; margin-top: 10px;">${escapeHtml(error.message)}</p>
-                        <p style="font-size: 12px; margin-top: 10px; color: #666;">Check browser console (F12) for details</p>
-                    </div>
-                `;
                 showMessage(`❌ Failed to load files: ${error.message}`, 'error');
             } finally {
                 spinner.style.display = 'none';
             }
         }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
 
         async function downloadFile(fileKey, fileName) {
             try {
-                console.log('Downloading file:', fileKey);
-                showMessage('⏳ Generating download link...', 'success');
-                
                 const response = await fetch(`${API_URL}/download?key=${encodeURIComponent(fileKey)}`);
-                console.log('Download response status:', response.status);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Download error:', errorText);
-                    throw new Error(`Failed to get download link: ${response.status}`);
-                }
-                
                 const data = await response.json();
-                console.log('Download URL received:', data.downloadUrl ? 'Yes' : 'No');
 
-                if (data.downloadUrl) {
-                    showMessage('✅ Opening download...', 'success');
-                    
-                    // Create a temporary link and click it
-                    const a = document.createElement('a');
-                    a.href = data.downloadUrl;
-                    a.download = fileName;
-                    a.target = '_blank';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    
-                    setTimeout(() => {
-                        showMessage('✅ Download started!', 'success');
-                    }, 1000);
+                if (response.ok) {
+                    window.open(data.downloadUrl, '_blank');
                 } else {
-                    throw new Error('No download URL received');
+                    showMessage(`❌ Download failed: ${data.error}`, 'error');
                 }
             } catch (error) {
-                console.error('Download error:', error);
-                showMessage(`❌ Download failed: ${error.message}`, 'error');
+                showMessage(`❌ Download error: ${error.message}`, 'error');
             }
         }
 
