@@ -398,21 +398,11 @@
                     throw new Error(`API returned ${response.status}: ${errorText}`);
                 }
                 
-                let data = await response.json();
-                console.log('Raw response data:', data);
-                
-                // API Gateway returns body as a string, so parse it again
-                if (typeof data.body === 'string') {
-                    data = JSON.parse(data.body);
-                    console.log('Parsed body data:', data);
-                }
-                
-                // Handle case where data might be nested
-                const files = data.files || [];
-                console.log('Files array:', files);
+                const data = await response.json();
+                console.log('Files data:', data);
 
-                if (files && files.length > 0) {
-                    fileList.innerHTML = files.map(file => {
+                if (data.files && data.files.length > 0) {
+                    fileList.innerHTML = data.files.map(file => {
                         const sizeMB = (file.size / 1024 / 1024).toFixed(2);
                         const sizeKB = (file.size / 1024).toFixed(2);
                         const displaySize = file.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
