@@ -400,11 +400,9 @@
                 let data = await response.json();
                 console.log('Raw response:', data);
 
-                // If coming from API Gateway
+                
                 if (data.body) {
-                    data = typeof data.body === 'string'
-                        ? JSON.parse(data.body)
-                        : data.body;
+                    data = JSON.parse(data.body);
                 }
 
                 console.log('Final parsed data:', data);
